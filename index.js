@@ -72,7 +72,7 @@ const wait = require("util").promisify(setTimeout);
   const events = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/events.json").then(res => res.json());
   const eventStories = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/eventStories.json").then(res => res.json());
 
-  await eventStories.forEach(async (story) => {
+  for (story of eventStories) {
     if (! await fileExists(`assets/${story.assetbundleName}`)) {
       await fs.mkdir(`assets/${story.assetbundleName}`);
     }
@@ -87,7 +87,7 @@ const wait = require("util").promisify(setTimeout);
       let eventStoryData = "";
       eventStoryData += `% ${metadata.eventName.replace(badChars.markdown, "\\$1")}\n\n`;
 
-      await story.eventStoryEpisodes.forEach(async (episode) => {
+      for (const episode of story.eventStoryEpisodes) {
         if (! await fileExists(`assets/${story.assetbundleName}/${episode.scenarioId}.json`)) {
           try {
             const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/event_story/${story.assetbundleName}/scenario_rip/${episode.scenarioId}.asset`).then(res => res.json());
@@ -103,7 +103,7 @@ const wait = require("util").promisify(setTimeout);
 
         eventStoryData += `# ${episodeMetadata.episodeNo} - ${episodeMetadata.title.replace(badChars.markdown, "\\$1")}\n\n---\n\n`;
 
-        episodeData.Snippets.forEach(snippet => {
+        for (snippet of episodeData.Snippets) {
           let data;
           switch (snippet.Action) {
             case 1:
@@ -129,17 +129,13 @@ const wait = require("util").promisify(setTimeout);
               }
               break;
           }
-        });
-      });
+        }
+      }
 
-      //await fs.writeFile(`Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replace(badChars.windows, "_").replace(/\.$/, "")}.md`, eventStoryData);
-
-
-      await wait(5000);
       const pandocArgs = ["-f", "markdown", "-t", "epub", "-o", `Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replace(badChars.windows, "_").replace(/\.$/, "")}.epub`];
       nodePandoc(eventStoryData, pandocArgs, (err, result) => {
         if (err) return console.error(err);
       });
     }
-  });
+  }
 })();
