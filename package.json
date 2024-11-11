@@ -1,0 +1,19 @@
+{
+  "name": "sekai-story-viewer",
+  "version": "1.0.0",
+  "description": "Convert Project Sekai's stories to EPUB format",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.jacen.moe/jacenboy/sekai-story-viewer.git"
+  },
+  "author": "Jacen Sekai",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "node-pandoc": "^0.3.0"
+  }
+}
