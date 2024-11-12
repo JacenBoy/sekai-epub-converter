@@ -101,7 +101,7 @@ const wait = require("util").promisify(setTimeout);
         const episodeData = require(`./assets/${story.assetbundleName}/${episode.scenarioId}.json`);
         const episodeMetadata = metadata.eventStoryEpisodes.find(o => o.scenarioId == episodeData.ScenarioId);
 
-        eventStoryData += `# ${episodeMetadata.episodeNo} - ${episodeMetadata.title.replace(badChars.markdown, "\\$1")}\n\n---\n\n`;
+        eventStoryData += `# Episode ${episodeMetadata.episodeNo} - ${episodeMetadata.title.replace(badChars.markdown, "\\$1")}\n\n---\n\n`;
 
         for (snippet of episodeData.Snippets) {
           let data;
