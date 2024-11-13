@@ -50,6 +50,15 @@ const badChars = {
   "markdown": /([\\\*\_\<\>\(\)\#])/g
 };
 
+const units = {
+  "light_sound": "Leo/need",
+  "idol": "MORE MORE JUMP!",
+  "street": "Vivid BAD SQUAD",
+  "theme_park": "Wonderlands×Showtime",
+  "school_refusal": "Nightcord at 25:00",
+  "piapro": "VIRTUAL SINGER"
+};
+
 const fileExists = async (filePath) => {
   try {
     await fs.access(filePath);
@@ -59,20 +68,104 @@ const fileExists = async (filePath) => {
   }
 };
 
+const processSnippet = (eventStoryData, episodeData, snippet) => {
+  let data;
+  switch (snippet.Action) {
+    case 1:
+      data = episodeData.TalkData[snippet.ReferenceIndex];
+      eventStoryData += `**${data.WindowDisplayName}:** ${data.Body.replace(/[\n\r]/g, " ").replace(badChars.markdown, "\\$1")}\n\n`;
+      break;
+    case 6:
+      data = episodeData.SpecialEffectData[snippet.ReferenceIndex];
+      if ([1, 10, 20].includes(data.EffectType)) {
+        if (!eventStoryData.endsWith("---\n\n")) {
+          eventStoryData += "---\n\n";
+        }
+      }
+      if (data.EffectType == 8) {
+        eventStoryData += `**-- ${data.StringVal.replace(badChars.markdown, "\\$1")} --**\n\n`;
+      }
+      if (data.EffectType == 9) {
+        if (!eventStoryData.endsWith("---\n\n")) {
+          eventStoryData += "---\n\n**-- Flashback --**\n\n";
+        } else {
+          eventStoryData += "**-- Flashback --**\n\n";
+        }
+      }
+      break;
+  }
+  return eventStoryData;
+};
+
 const wait = require("util").promisify(setTimeout);
 
 (async () => {
   if (! await fileExists("assets")) {
     await fs.mkdir("assets");
   }
-  if (! await fileExists("Event Stories")) {
-    await fs.mkdir("Event Stories");
+
+  if (! await fileExists("Stories")) {
+    await fs.mkdir("Stories");
   }
 
+  // Unit Stories
+  const unitStories = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/unitStories.json").then(res => res.json());
+  if (! await fileExists("Stories/Unit Stories")) {
+    await fs.mkdir("Stories/Unit Stories");
+  }
+
+  for (const unit of unitStories) {
+    if (! await fileExists(`assets/${unit.unit}`)) {
+      await fs.mkdir(`assets/${unit.unit}`);
+    }
+    if (! await fileExists(`Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}`)) {
+      await fs.mkdir(`Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}`);
+    }
+
+    for (const chapter of unit.chapters) {
+      if (! await fileExists(`Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}/Chapter ${chapter.chapterNo}.epub`)) {
+        let eventStoryData = "";
+        eventStoryData += `% ${chapter.title}\n\n`;
+
+        for (const episode of chapter.episodes) {
+          if (! await fileExists(`assets/${unit.unit}/${episode.assetbundleName}.json`)) {
+            try {
+              const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/scenario/unitstory/${chapter.assetbundleName}_rip/${episode.scenarioId}.asset`).then(res => res.json());
+              await fs.writeFile(`assets/${unit.unit}/${episode.assetbundleName}.json`, JSON.stringify(asset));
+            } catch (ex) {
+              console.error(ex);
+            }
+          }
+
+          if (episode.title == "Opening") {
+            eventStoryData += "# Opening\n\n---\n\n";
+          } else {
+            eventStoryData += `# ${episode.episodeNoLabel} - ${episode.title}\n\n---\n\n`;
+          }
+
+          const episodeData = require(`./assets/${unit.unit}/${episode.assetbundleName}.json`);
+          for (const snippet of episodeData.Snippets) {
+            eventStoryData = processSnippet(eventStoryData, episodeData, snippet);
+          }
+
+          const pandocArgs = ["-f", "markdown", "-t", "epub", "-o", `Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}/Chapter ${chapter.chapterNo}.epub`];
+          nodePandoc(eventStoryData, pandocArgs, (err, result) => {
+            if (err) return console.error(err);
+          });
+        }
+      }
+    }
+  }
+
+  // Event Stories
   const events = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/events.json").then(res => res.json());
   const eventStories = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/eventStories.json").then(res => res.json());
+  if (! await fileExists("Stories/Event Stories")) {
+    await fs.mkdir("Stories/Event Stories");
+  }
 
-  for (story of eventStories) {
+
+  for (const story of eventStories) {
     if (! await fileExists(`assets/${story.assetbundleName}`)) {
       await fs.mkdir(`assets/${story.assetbundleName}`);
     }
@@ -83,7 +176,7 @@ const wait = require("util").promisify(setTimeout);
     }
 
     const metadata = require(`./assets/${story.assetbundleName}/metadata.json`);
-    if (! await fileExists(`Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replaceAll(badChars.windows, "_").replace(/\.$/, "")}.epub`)) {
+    if (! await fileExists(`Stories/Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replaceAll(badChars.windows, "_").replace(/\.$/, "")}.epub`)) {
       let eventStoryData = "";
       eventStoryData += `% ${metadata.eventName.replace(badChars.markdown, "\\$1")}\n\n`;
 
@@ -103,36 +196,12 @@ const wait = require("util").promisify(setTimeout);
 
         eventStoryData += `# Episode ${episodeMetadata.episodeNo} - ${episodeMetadata.title.replace(badChars.markdown, "\\$1")}\n\n---\n\n`;
 
-        for (snippet of episodeData.Snippets) {
-          let data;
-          switch (snippet.Action) {
-            case 1:
-              data = episodeData.TalkData[snippet.ReferenceIndex];
-              eventStoryData += `**${data.WindowDisplayName}:** ${data.Body.replace(/[\n\r]/g, " ").replace(badChars.markdown, "\\$1")}\n\n`;
-              break;
-            case 6:
-              data = episodeData.SpecialEffectData[snippet.ReferenceIndex];
-              if ([1, 10, 20].includes(data.EffectType)) {
-                if (!eventStoryData.endsWith("---\n\n")) {
-                  eventStoryData += "---\n\n";
-                }
-              }
-              if (data.EffectType == 8) {
-                eventStoryData += `**-- ${data.StringVal.replace(badChars.markdown, "\\$1")} --**\n\n`;
-              }
-              if (data.EffectType == 9) {
-                if (!eventStoryData.endsWith("---\n\n")) {
-                  eventStoryData += "---\n\n**-- Flashback --**\n\n";
-                } else {
-                  eventStoryData += "**-- Flashback --**\n\n";
-                }
-              }
-              break;
-          }
+        for (const snippet of episodeData.Snippets) {
+          eventStoryData = processSnippet(eventStoryData, snippet);
         }
       }
 
-      const pandocArgs = ["-f", "markdown", "-t", "epub", "-o", `Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replace(badChars.windows, "_").replace(/\.$/, "")}.epub`];
+      const pandocArgs = ["-f", "markdown", "-t", "epub", "-o", `Stories/Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replace(badChars.windows, "_").replace(/\.$/, "")}.epub`];
       nodePandoc(eventStoryData, pandocArgs, (err, result) => {
         if (err) return console.error(err);
       });
