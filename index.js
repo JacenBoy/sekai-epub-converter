@@ -111,25 +111,30 @@ const wait = require("util").promisify(setTimeout);
   // Unit Stories
   const unitStories = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/unitStories.json").then(res => res.json());
   if (! await fileExists("Stories/Unit Stories")) {
+    console.log("Creating Unit Stories folder");
     await fs.mkdir("Stories/Unit Stories");
   }
 
   for (const unit of unitStories) {
     if (! await fileExists(`assets/${unit.unit}`)) {
+      console.log(`Creating ${unit.unit} assets folder`);
       await fs.mkdir(`assets/${unit.unit}`);
     }
     if (! await fileExists(`Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}`)) {
+      console.log(`Creating ${units[unit.unit].replace(badChars.windows, "_")} folder`);
       await fs.mkdir(`Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}`);
     }
 
     for (const chapter of unit.chapters) {
       if (! await fileExists(`Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}/Chapter ${chapter.chapterNo}.epub`)) {
+        console.log(`Generating chapter ${chapter.chapterNo}`);
         let eventStoryData = "";
         eventStoryData += `% ${chapter.title}\n\n`;
 
         for (const episode of chapter.episodes) {
           if (! await fileExists(`assets/${unit.unit}/${episode.assetbundleName}.json`)) {
             try {
+              console.log("Downloading assets");
               const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/scenario/unitstory/${chapter.assetbundleName}_rip/${episode.scenarioId}.asset`).then(res => res.json());
               await fs.writeFile(`assets/${unit.unit}/${episode.assetbundleName}.json`, JSON.stringify(asset));
             } catch (ex) {
@@ -147,12 +152,12 @@ const wait = require("util").promisify(setTimeout);
           for (const snippet of episodeData.Snippets) {
             eventStoryData = processSnippet(eventStoryData, episodeData, snippet);
           }
-
-          const pandocArgs = ["-f", "markdown", "-t", "epub", "-o", `Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}/Chapter ${chapter.chapterNo}.epub`];
-          nodePandoc(eventStoryData, pandocArgs, (err, result) => {
-            if (err) return console.error(err);
-          });
         }
+
+        const pandocArgs = ["-f", "markdown", "-t", "epub", "-o", `Stories/Unit Stories/${units[unit.unit].replace(badChars.windows, "_")}/Chapter ${chapter.chapterNo}.epub`];
+        nodePandoc(eventStoryData, pandocArgs, (err, result) => {
+          if (err) return console.error(err);
+        });
       }
     }
   }
@@ -161,15 +166,18 @@ const wait = require("util").promisify(setTimeout);
   const events = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/events.json").then(res => res.json());
   const eventStories = await fetch("https://sekai-world.github.io/sekai-master-db-en-diff/eventStories.json").then(res => res.json());
   if (! await fileExists("Stories/Event Stories")) {
+    console.log("Creating Event Stories folder");
     await fs.mkdir("Stories/Event Stories");
   }
 
 
   for (const story of eventStories) {
     if (! await fileExists(`assets/${story.assetbundleName}`)) {
+      console.log(`Creating ${story.assetbundleName} assets folder`);
       await fs.mkdir(`assets/${story.assetbundleName}`);
     }
     if (! await fileExists(`assets/${story.assetbundleName}/metadata.json`)) {
+      console.log(`Downloading metadata for ${story.assetbundleName}`);
       const eventMetadata = story;
       eventMetadata.eventName = events.find(o => o.id == story.eventId).name;
       await fs.writeFile(`assets/${story.assetbundleName}/metadata.json`, JSON.stringify(eventMetadata));
@@ -177,12 +185,14 @@ const wait = require("util").promisify(setTimeout);
 
     const metadata = require(`./assets/${story.assetbundleName}/metadata.json`);
     if (! await fileExists(`Stories/Event Stories/${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replaceAll(badChars.windows, "_").replace(/\.$/, "")}.epub`)) {
+      console.log(`Generating ${String(metadata.eventId).padStart(3, "0")} - ${metadata.eventName.replaceAll(badChars.windows, "_").replace(/\.$/, "")}`);
       let eventStoryData = "";
       eventStoryData += `% ${metadata.eventName.replace(badChars.markdown, "\\$1")}\n\n`;
 
       for (const episode of story.eventStoryEpisodes) {
         if (! await fileExists(`assets/${story.assetbundleName}/${episode.scenarioId}.json`)) {
           try {
+            console.log("Downloading assets");
             const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/event_story/${story.assetbundleName}/scenario_rip/${episode.scenarioId}.asset`).then(res => res.json());
             await fs.writeFile(`assets/${story.assetbundleName}/${episode.scenarioId}.json`, JSON.stringify(asset));
           } catch (ex) {
@@ -197,7 +207,7 @@ const wait = require("util").promisify(setTimeout);
         eventStoryData += `# Episode ${episodeMetadata.episodeNo} - ${episodeMetadata.title.replace(badChars.markdown, "\\$1")}\n\n---\n\n`;
 
         for (const snippet of episodeData.Snippets) {
-          eventStoryData = processSnippet(eventStoryData, snippet);
+          eventStoryData = processSnippet(eventStoryData, episodeData, snippet);
         }
       }
 
