@@ -135,7 +135,7 @@ const wait = require("util").promisify(setTimeout);
           if (! await fileExists(`assets/${unit.unit}/${episode.assetbundleName}.json`)) {
             try {
               console.log("Downloading assets");
-              const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/scenario/unitstory/${chapter.assetbundleName}_rip/${episode.scenarioId}.asset`).then(res => res.json());
+              const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/scenario/unitstory/${chapter.assetbundleName}/${episode.scenarioId}.asset`).then(res => res.json());
               await fs.writeFile(`assets/${unit.unit}/${episode.assetbundleName}.json`, JSON.stringify(asset));
             } catch (ex) {
               console.error(ex);
@@ -193,7 +193,7 @@ const wait = require("util").promisify(setTimeout);
         if (! await fileExists(`assets/${story.assetbundleName}/${episode.scenarioId}.json`)) {
           try {
             console.log("Downloading assets");
-            const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/event_story/${story.assetbundleName}/scenario_rip/${episode.scenarioId}.asset`).then(res => res.json());
+            const asset = await fetch(`https://storage.sekai.best/sekai-en-assets/event_story/${story.assetbundleName}/scenario/${episode.scenarioId}.asset`).then(res => res.json());
             await fs.writeFile(`assets/${story.assetbundleName}/${episode.scenarioId}.json`, JSON.stringify(asset));
           } catch (ex) {
             console.error(ex);
