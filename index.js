@@ -47,7 +47,7 @@ export enum SnippetAction {
 
 const badChars = {
   "windows": /[\<\>\:\"\/\\\|\?\*]/g,
-  "markdown": /([\\\*\_\<\>\(\)\#])/g
+  "markdown": /([\\\*\_\<\>\(\)\#\~])/g
 };
 
 const units = {
